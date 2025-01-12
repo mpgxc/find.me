@@ -1,0 +1,49 @@
+Resources:
+  StorageAlbumsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: storage-albums-bucket-${opt:stage, self:provider.stage}
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Última etapa de deploy
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt ImageUploadQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: albums/
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+            AllowedHeaders:
+              - '*'
+            MaxAge: 3600
+      Tags: ${self:custom.LambdaTags}
+
+  ImageUploadQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ImageUploadQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action:
+              - SQS:SendMessage
+            Resource: !GetAtt ImageUploadQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !GetAtt StorageAlbumsBucket.Arn

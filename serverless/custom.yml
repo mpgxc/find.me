@@ -1,0 +1,20 @@
+custom:
+  defaultStage: dev
+  prune:
+    automatic: true
+    number: 2
+  logRetentionInDays: 30
+  deploymentBucket:
+    blockPublicAccess: true
+    tags: ${self:custom.LambdaTags}
+  serverless-offline:
+    allowCache: true
+    useChildProcesses: true
+    httpPort: 4000
+  LambdaTags:
+    - Key: Name
+      Value: ${self:service}-${self:provider.stage}-lambda
+    - Key: ManagedBy
+      Value: Serverless Framework
+    - Key: Team
+      Value: MPGXC

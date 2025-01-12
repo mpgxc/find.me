@@ -1,0 +1,8 @@
+Resources:
+  ImageUploadQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: storage-albums-queue-${opt:stage, self:provider.stage}
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 90
+      Tags: ${self:custom.LambdaTags}

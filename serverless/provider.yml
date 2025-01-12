@@ -1,0 +1,9 @@
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, self:custom.defaultStage}
+  region: ${env:AWS_REGION_DEFAULT, 'us-east-1'}
+  stackName: ${self:service}-${self:provider.stage}
+  deploymentBucket:
+    name: ${self:service}-${self:provider.region}-deployment-bucket
+    blockPublicAccess: true

@@ -1,0 +1,11 @@
+functions:
+  GenerateThumbnails:
+    handler: dist/src/handlers/generate-thumbnails.handler
+    memorySize: 128
+    timeout: 60
+    description: Generate thumbnails for images uploaded to the albums bucket
+    # reservedConcurrency: 10
+    events:
+      - sqs:
+          arn: !GetAtt ImageUploadQueue.Arn
+          batchSize: 10

@@ -1,0 +1,27 @@
+package:
+  individually: true
+  excludeDevDependencies: true
+  # patterns:
+  #   - '!node_modules/**'
+  #   - '!src/**'
+  #   - '!dist/**'
+  #   - '!prisma/**'
+  #   - '!emails/**'
+  #   - '!libs/**'
+  #   - '!.env'
+  #   - '!*.yml'
+  #   - '!.env.*'
+  #   - '!*.log'
+  #   - '!*.md'
+  #   - '!*.yml'
+  #   - '!*.yaml'
+  #   - '!*.lock'
+  #   - '!*.json'
+  #   - '!*.pem'
+  #   - '!*.prettierrc'
+  #   - '!*.eslintrc'
+  #   - '!*.eslintrc.js'
+  #   - '!*.editorconfig'
+  #   - '!*.vscode/**'
+  #   - '!*.github'
+  #   - 'dist/src/handlers/**'

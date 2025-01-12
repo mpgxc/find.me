@@ -1,0 +1,25 @@
+org: mpgxc
+app: infra-albums-storage-service
+service: infra-albums-storage-service
+
+configValidationMode: warn
+useDotenv: true
+
+plugins:
+  - serverless-prune-plugin
+  - serverless-plugin-optimize
+  - serverless-deployment-bucket
+  - serverless-plugin-common-excludes
+  - serverless-plugin-include-dependencies
+  - serverless-offline
+
+custom: ${file(serverless/custom.yml):custom}
+provider: ${file(serverless/provider.yml):provider}
+functions: ${file(serverless/functions.yml):functions}
+
+resources:
+  - ${file(serverless/resources/sqs.yml)}
+  - ${file(serverless/resources/s3.yml)}
+  - ${file(serverless/resources/cloudfront.yml)}
+
+package: ${file(serverless/package.yml):package}
