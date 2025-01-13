@@ -1,0 +1,28 @@
+package:
+  individually: true
+  excludeDevDependencies: true
+  patterns:
+    - "!node_modules/**"
+    - "node_modules/zod/**"
+    - "!app/**"
+    - "!dist/**"
+    - "!prisma/**"
+    - "!emails/**"
+    - "!libs/**"
+    - "!.env"
+    - "!*.yml"
+    - "!.env.*"
+    - "!*.log"
+    - "!*.md"
+    - "!*.yml"
+    - "!*.yaml"
+    - "!*.lock"
+    - "!*.json"
+    - "!*.pem"
+    - "!*.prettierrc"
+    - "!*.eslintrc"
+    - "!*.eslintrc.js"
+    - "!*.editorconfig"
+    - "!*.vscode/**"
+    - "!*.github"
+    - "dist/app/handlers/**"

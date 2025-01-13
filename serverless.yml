@@ -1,0 +1,138 @@
+org: mpgxc
+app: infra-face-rekognition-sls
+service: infra-face-rekognition-sls
+
+configValidationMode: warn
+useDotenv: true
+
+plugins:
+  - serverless-prune-plugin
+  - serverless-plugin-optimize
+  - serverless-deployment-bucket
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, self:custom.defaultStage}
+  region: ${env:AWS_REGION_DEFAULT, 'us-east-1'}
+  stackName: ${self:service}-${self:provider.stage}
+  deploymentBucket:
+    name: ${self:service}-${self:provider.region}-deployment-bucket
+    blockPublicAccess: true
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "rekognition:DetectFaces"
+        - "rekognition:IndexFaces"
+        - "rekognition:SearchFacesByImage"
+        # Isso para o CRUD dinâmico de coleções
+        - "rekognition:CreateCollection"
+        - "rekognition:DeleteCollection"
+        - "rekognition:ListCollections"
+        # S3
+        - "s3:GetObject"
+      Resource:
+        - "*"
+  httpApi:
+    payload: "3.0"
+  apiGateway:
+    binaryMediaTypes:
+      - "image/jpeg"
+      - "image/png"
+
+custom:
+  defaultStage: dev
+  prune:
+    automatic: true
+    number: 2
+  logRetentionInDays: 7
+  serverless-offline:
+    allowCache: true
+    useChildProcesses: true
+    httpPort: 4000
+  REKOGNITION_COLLECTION: ${self:service}-${self:provider.stage}-collection
+
+functions:
+  DetectAndIndexFaces:
+    handler: build/handlers/image-indexer.handler
+    memorySize: 128
+    timeout: 60
+    description: Detects faces and indexes them in the Rekognition collection
+    maximumRetryAttempts: 0
+    events:
+      - sqs:
+          arn: !GetAtt FaceRecognitionQueue.Arn
+          batchSize: 10
+    environment:
+      REKOGNITION_COLLECTION: ${self:custom.REKOGNITION_COLLECTION}
+
+  FindSimilarFaces:
+    handler: build/app.handler
+    memorySize: 128
+    timeout: 10
+    description: Finds similar faces in the Rekognition collection
+    maximumRetryAttempts: 0
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: "{proxy+}"
+    environment:
+      REKOGNITION_COLLECTION: ${self:custom.REKOGNITION_COLLECTION}
+
+resources:
+  Resources:
+    FaceRecognitionBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:provider.stage}-bucket
+        AccessControl: Private
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        NotificationConfiguration:
+          QueueConfigurations:
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt FaceRecognitionQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: uploads/
+                    - Name: suffix
+                      Value: .jpg
+
+    FaceRecognitionQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-queue
+        ReceiveMessageWaitTimeSeconds: 20
+        VisibilityTimeout: 90
+
+    FaceRecognitionQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        PolicyDocument:
+          Id: SQSQueuePolicy
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: "*"
+              Action: sqs:SendMessage
+              Resource: !GetAtt FaceRecognitionQueue.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !GetAtt FaceRecognitionBucket.Arn
+        Queues:
+          - !Ref FaceRecognitionQueue
+
+    FaceRecognitionCollection:
+      Type: AWS::Rekognition::Collection
+      Properties:
+        CollectionId: ${self:service}-${self:provider.stage}-collection
+
+package: ${file(package.yml):package}
