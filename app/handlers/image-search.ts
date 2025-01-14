@@ -3,8 +3,8 @@ import {
   SearchFacesByImageCommand,
 } from "@aws-sdk/client-rekognition";
 import { serve } from "@hono/node-server";
-import type { Context, Next } from "hono";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 
 const rekognitionClient = new RekognitionClient({
   region: "us-east-1",
@@ -13,28 +13,6 @@ const rekognitionClient = new RekognitionClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-export const uploadMiddleware = async (ctx: Context, next: Next) => {
-  try {
-    const content = await ctx.req.blob();
-
-    if (!content.size) {
-      return ctx.json({ message: "File is empty" }, 400);
-    }
-
-    if (content.size >= MAX_FILE_SIZE) {
-      return ctx.json({ message: "File too large, max size is 5MB" }, 413);
-    }
-
-    await next();
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "An unexpected error occurred";
-    return ctx.json({ message }, 500);
-  }
-};
 
 const COLLECTION_ID = process.env.REKOGNITION_COLLECTION!;
 
@@ -55,36 +33,50 @@ app.notFound((c) =>
   )
 );
 
-app.post("/upload", async (ctx) => {
-  const body = await ctx.req.parseBody();
-  const file = body["file"] as File;
+app.post(
+  "/upload",
+  bodyLimit({
+    maxSize: 5 * 1024 * 1024,
+    onError: (c) => {
+      return c.json(
+        {
+          message: "O tamanho máximo do arquivo é de 5MB",
+        },
+        413
+      );
+    },
+  }),
+  async (ctx) => {
+    const body = await ctx.req.parseBody();
+    const file = body["file"] as File;
 
-  try {
-    const searchFacesOutput = await searchFacesByImage(COLLECTION_ID, file);
+    try {
+      const searchFacesOutput = await searchFacesByImage(COLLECTION_ID, file);
 
-    const matchedImages =
-      searchFacesOutput.FaceMatches?.map(
-        (face) => face.Face?.ExternalImageId
-      ) || [];
+      const matchedImages =
+        searchFacesOutput.FaceMatches?.map(
+          (face) => face.Face?.ExternalImageId
+        ) || [];
 
-    return ctx.json({
-      message: "Imagem processada com sucesso!",
-      matched_images: matchedImages,
-    });
-  } catch (e) {
-    const error = e as Error;
+      return ctx.json({
+        message: "Imagem processada com sucesso!",
+        matched_images: matchedImages,
+      });
+    } catch (e) {
+      const error = e as Error;
 
-    console.error(`Erro ao processar a imagem: ${error}`);
+      console.error(`Erro ao processar a imagem: ${error}`);
 
-    return ctx.json(
-      {
-        message: "Erro ao processar a imagem",
-        error: error.message,
-      },
-      500
-    );
+      return ctx.json(
+        {
+          message: "Erro ao processar a imagem",
+          error: error.message,
+        },
+        500
+      );
+    }
   }
-});
+);
 
 const searchFacesByImage = async (collectionId: string, file: File) => {
   const command = new SearchFacesByImageCommand({
