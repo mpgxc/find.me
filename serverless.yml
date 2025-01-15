@@ -95,6 +95,7 @@ resources:
           ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: AES256
+        # Por algum motivo esta sessão sempre tem de ser deployado por último
         NotificationConfiguration:
           QueueConfigurations:
             - Event: s3:ObjectCreated:*
