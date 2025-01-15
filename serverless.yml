@@ -64,6 +64,7 @@ functions:
       - sqs:
           arn: !GetAtt FaceRecognitionQueue.Arn
           batchSize: 10
+          maximumConcurrency: 1 # Limit the number of concurrent executions
     environment:
       REKOGNITION_COLLECTION: ${self:custom.REKOGNITION_COLLECTION}
 
